@@ -1,0 +1,29 @@
+Workflow 3: Tenant + auth foundation
+
+Tenant creation and activation
+User signup/login
+User-to-tenant membership assignment
+Role checks (owner/admin/member)
+API endpoints for tenant management
+Pydantic schemas and service layer
+Seed admin/tenant bootstrap for dev
+Workflow 4: Document ingestion and processing
+
+Upload document
+Store file metadata
+Parse content
+Split into chunks
+Persist chunk metadata
+Validate tenant ownership
+Workflow 5: Embeddings and retrieval
+
+Build embedding pipeline
+Store vectors
+Search by similarity
+Tenant-scoped retrieval
+Workflow 6: Conversations and chat
+
+New conversation
+Send messages
+Retrieval-augmented answer generation
+Tenant-aware history

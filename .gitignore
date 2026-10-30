@@ -15,7 +15,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
-.mypy_cache/
+.mypy_cache/             
 .ruff_cache/
 .tox/
 .nox/

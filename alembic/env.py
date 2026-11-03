@@ -4,17 +4,18 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
+from app.db.base import Base
+import app.db.models  # noqa: F401  # registers every mapped table with Base.metadata
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# configparser treats % as interpolation, which breaks URL-encoded passwords unless escaped.
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
-# This is a placeholder for the project metadata used by Alembic. The repository is
-# not yet at the migration stage and no migration should be run without explicit approval.
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:

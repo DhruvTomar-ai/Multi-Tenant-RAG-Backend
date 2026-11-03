@@ -31,5 +31,8 @@ Thumbs.db
 # Logs
 *.log
 
-# Downloaded embedding models
-models/
+# Downloaded embedding models (repo root only; app/db/models is source code)
+/models/
+
+# Uploaded tenant documents
+/data/

@@ -1,0 +1,14 @@
+# Redis is the Celery message broker. PostgreSQL/pgvector keeps running in your
+# existing container on port 5433, so it is deliberately not defined here.
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: multi-tenant-rag-redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

@@ -37,6 +37,9 @@ if TEST_DATABASE_URL.startswith("sqlite"):
         dbapi_connection.execute("PRAGMA foreign_keys=ON")
 else:
     engine = create_engine(TEST_DATABASE_URL)
+    # create_all does not run migrations, so it must enable the extension the embeddings table needs.
+    with engine.begin() as connection:
+        connection.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -70,6 +73,8 @@ def queued_tasks(monkeypatch):
         "app.services.documents.task_queue.enqueue_ingestion_job",
         lambda job_id, task_id: tasks.append((job_id, task_id)),
     )
+    # Embeddings run as their own task and need PostgreSQL. See api_tests for those tests.
+    monkeypatch.setattr("app.services.documents.task_queue.enqueue_embedding_job", lambda document_id: None)
     return tasks
 
 

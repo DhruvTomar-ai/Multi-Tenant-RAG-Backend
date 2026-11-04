@@ -12,6 +12,7 @@ from celery import Celery
 from app.core.config import settings
 
 INGEST_DOCUMENT_TASK = "documents.ingest"
+EMBED_DOCUMENT_TASK = "documents.embed"
 
 celery_app = Celery(
     "multi_tenant_rag",

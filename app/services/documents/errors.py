@@ -23,6 +23,14 @@ class IngestionQueueError(Exception):
     """The document was saved but its task could not be sent to the broker."""
 
 
+class EmbeddingRetryConflict(Exception):
+    """The document's embeddings are not in a state that can be retried."""
+
+    def __init__(self, embedding_status: str):
+        super().__init__(f"Embeddings cannot be retried while their status is {embedding_status}")
+        self.embedding_status = embedding_status
+
+
 class PermanentIngestionError(Exception):
     """Processing can never succeed for this file, so retrying would be pointless.
 

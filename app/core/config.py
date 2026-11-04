@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,11 +32,39 @@ class Settings(BaseSettings):
         alias="ALLOWED_DOCUMENT_EXTENSIONS",
     )
 
-    chunk_size: int = Field(default=512, gt=0, alias="CHUNK_SIZE")
+    # Counted by the chunker's tokenizer, not BGE's. benchmarks/chunk_size_check.py measured the longest
+    # chunk at 498 BGE tokens with this value, under the model's limit of 512. Text past that limit is
+    # silently left out of the embedding, so re-run that check before raising this.
+    chunk_size: int = Field(default=300, gt=0, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(default=64, ge=0, alias="CHUNK_OVERLAP")
 
     ingestion_max_retries: int = Field(default=3, ge=0, alias="INGESTION_MAX_RETRIES")
     ingestion_retry_backoff_seconds: int = Field(default=30, ge=0, alias="INGESTION_RETRY_BACKOFF_SECONDS")
+
+    embedding_model_name: str = Field(default="BAAI/bge-small-en-v1.5", alias="EMBEDDING_MODEL_NAME")
+    # A pinned commit, so stored vectors can always be matched to the exact weights that made them.
+    embedding_model_revision: str = Field(default="5c38ec7c405ec4b44b94cc5a9bb96e735b38267a", alias="EMBEDDING_MODEL_REVISION")
+    embedding_cache_dir: str = Field(default="./models", alias="EMBEDDING_CACHE_DIR")
+    embedding_device: str = Field(default="cpu", alias="EMBEDDING_DEVICE")
+    # Changing this also requires a migration: the column is vector(384).
+    embedding_dimension: int = Field(default=384, gt=0, alias="EMBEDDING_DIMENSION")
+    embedding_batch_size: int = Field(default=32, gt=0, le=1024, alias="EMBEDDING_BATCH_SIZE")
+    # BGE v1.5 recommends this prefix on queries, and none on documents.
+    embedding_query_instruction: str = Field(
+        default="Represent this sentence for searching relevant passages: ",
+        alias="EMBEDDING_QUERY_INSTRUCTION",
+    )
+    embedding_max_retries: int = Field(default=3, ge=0, alias="EMBEDDING_MAX_RETRIES")
+    embedding_retry_backoff_seconds: int = Field(default=30, ge=0, alias="EMBEDDING_RETRY_BACKOFF_SECONDS")
+
+    hnsw_ef_search: int = Field(default=100, ge=1, le=1000, alias="HNSW_EF_SEARCH")
+    hnsw_iterative_scan: Literal["off", "strict_order", "relaxed_order"] = Field(default="strict_order", alias="HNSW_ITERATIVE_SCAN")
+    hnsw_max_scan_tuples: int = Field(default=20000, ge=1, alias="HNSW_MAX_SCAN_TUPLES")
+    hnsw_scan_mem_multiplier: float = Field(default=1.0, ge=1, le=1000, alias="HNSW_SCAN_MEM_MULTIPLIER")
+
+    search_default_top_k: int = Field(default=5, ge=1, alias="SEARCH_DEFAULT_TOP_K")
+    search_max_top_k: int = Field(default=50, ge=1, le=200, alias="SEARCH_MAX_TOP_K")
+    search_max_offset: int = Field(default=200, ge=0, le=1000, alias="SEARCH_MAX_OFFSET")
 
     @model_validator(mode="after")
     def _overlap_must_be_smaller_than_chunk(self) -> "Settings":

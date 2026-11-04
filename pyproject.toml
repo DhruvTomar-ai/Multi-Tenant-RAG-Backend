@@ -28,6 +28,8 @@ dependencies = [
     "llama-index-readers-file>=0.4,<1",
     "pypdf>=5.0",
     "docx2txt>=0.8",
+    "sentence-transformers>=3,<6",
+    "pgvector>=0.3",
 ]
 
 [project.optional-dependencies]

@@ -6,7 +6,9 @@ from app.core.config import settings
 from app.db import session as db_session
 from app.services.documents.errors import PermanentIngestionError
 from app.services.documents.ingestion import IngestionService
-from app.workers.celery_app import INGEST_DOCUMENT_TASK, celery_app
+from app.services.embeddings.model import EmbeddingDimensionError
+from app.services.embeddings.service import EmbeddingService
+from app.workers.celery_app import EMBED_DOCUMENT_TASK, INGEST_DOCUMENT_TASK, celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,33 @@ def ingest_document(self, job_id: int) -> None:
             raise
         service.mark_pending_for_retry(job_id, "A temporary error occurred. The job will be retried.")
         countdown = settings.ingestion_retry_backoff_seconds * (2**attempt)
+        raise self.retry(exc=exc, countdown=countdown, max_retries=max_retries)
+    finally:
+        db.close()
+
+
+@celery_app.task(bind=True, name=EMBED_DOCUMENT_TASK, throws=(EmbeddingDimensionError,))
+def embed_document(self, document_id: int) -> None:
+    db = db_session.SessionLocal()
+    service = EmbeddingService(db)
+    try:
+        service.embed_document(document_id)
+    except EmbeddingDimensionError:
+        # A wrong model or configuration. Retrying would produce the same vectors.
+        db.rollback()
+        logger.exception("Embedding document %s failed permanently", document_id)
+        service.mark_failed(document_id, "The embedding model produced invalid vectors.")
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Embedding document %s failed", document_id)
+        attempt = self.request.retries
+        max_retries = settings.embedding_max_retries
+        if attempt >= max_retries:
+            service.mark_failed(document_id, f"Embedding failed after {attempt + 1} attempts.")
+            raise
+        service.mark_pending_for_retry(document_id, "A temporary error occurred. The embedding will be retried.")
+        countdown = settings.embedding_retry_backoff_seconds * (2**attempt)
         raise self.retry(exc=exc, countdown=countdown, max_retries=max_retries)
     finally:
         db.close()

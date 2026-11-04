@@ -270,13 +270,14 @@ def test_inactive_team_blocks_upload(client, world):
 def test_leaving_a_team_removes_access(client, world, db):
     body = uploaded(client, world.hr_member, world.tenant_a, world.hr)
     membership = db.scalars(
-        select(UserTeamMembership).where(UserTeamMembership.team_id == world.hr, UserTeamMembership.role.has(Role.name == "member"))
+        select(UserTeamMembership).where(UserTeamMembership.team_id == world.hr, UserTeamMembership.role.has(Role.name == "viewer"))
     ).one()
     membership.is_active = False
     db.commit()
 
-    assert client.get(doc_url(world, body["document_id"]), headers=world.hr_member).status_code == 403
-    assert client.get(f"/api/v1/jobs/{body['job_id']}", headers=world.hr_member).status_code == 404
+    # The viewer did not upload this document. An uploader keeps read access to their own uploads.
+    assert client.get(doc_url(world, body["document_id"]), headers=world.hr_viewer).status_code == 403
+    assert client.get(f"/api/v1/jobs/{body['job_id']}", headers=world.hr_viewer).status_code == 404
 
 
 # --- Role and permission isolation ---

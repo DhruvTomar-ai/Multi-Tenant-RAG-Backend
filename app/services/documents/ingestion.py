@@ -6,13 +6,25 @@ which is why running a job again cannot produce duplicates or a half-saved docum
 """
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.models.document import STATUS_COMPLETED, STATUS_FAILED, STATUS_PENDING, STATUS_PROCESSING, Document, utc_now
+from app.db.models.document import (
+    EMBEDDING_NOT_REQUIRED,
+    EMBEDDING_PENDING,
+    STATUS_COMPLETED,
+    STATUS_FAILED,
+    STATUS_PENDING,
+    STATUS_PROCESSING,
+    Document,
+    utc_now,
+)
 from app.db.models.document_chunk import DocumentChunk
 from app.db.models.document_job import DocumentJob
+from app.services.documents import task_queue
 from app.services.documents.processing import (
     ChunkData,
     chunk_sections,
@@ -21,6 +33,9 @@ from app.services.documents.processing import (
     join_sections,
 )
 from app.services.documents.storage import LocalDocumentStorage
+from app.services.embeddings.service import EmbeddingService
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionService:
@@ -51,7 +66,20 @@ class IngestionService:
                 "chunk_overlap": settings.chunk_overlap,
             },
         )
+        self._enqueue_embedding(document_id)
         return True
+
+    def _enqueue_embedding(self, document_id: int) -> None:
+        """A broker outage here must not fail the ingestion: the chunks are already safely saved."""
+        status = self.db.scalar(select(Document.embedding_status).where(Document.id == document_id))
+        self.db.rollback()
+        if status == EMBEDDING_NOT_REQUIRED:
+            return
+        try:
+            task_queue.enqueue_embedding_job(document_id)
+        except Exception:
+            logger.exception("Could not queue embeddings for document %s", document_id)
+            EmbeddingService(self.db).mark_failed(document_id, "The processing queue is unavailable. Retry the embedding.")
 
     def _claim(self, job_id: int) -> tuple[int, int, int, str, str] | None:
         job = self.db.scalar(select(DocumentJob).where(DocumentJob.id == job_id).with_for_update())
@@ -113,6 +141,10 @@ class IngestionService:
         document.chunk_count = 0 if duplicate_of_id is not None else len(chunks)
         document.metadata_json = metadata
         document.status = STATUS_COMPLETED
+        # Replacing chunks removed their vectors through the foreign key, so start over.
+        document.embedding_status = EMBEDDING_NOT_REQUIRED if duplicate_of_id is not None else EMBEDDING_PENDING
+        document.embedding_error = None
+        document.embedded_at = None
 
         job.status = STATUS_COMPLETED
         job.error_message = None

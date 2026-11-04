@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from app.workers.celery_app import INGEST_DOCUMENT_TASK, celery_app
+from app.workers.celery_app import EMBED_DOCUMENT_TASK, INGEST_DOCUMENT_TASK, celery_app
+
+
+def enqueue_embedding_job(document_id: int) -> None:
+    """Sent after a document's chunks are saved, or when a failed embedding is retried."""
+    celery_app.send_task(EMBED_DOCUMENT_TASK, args=[document_id], retry=False)
 
 
 def enqueue_ingestion_job(job_id: int, task_id: str) -> None:

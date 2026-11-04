@@ -12,6 +12,7 @@ from app.db.models.user_tenant_membership import UserTenantMembership
 from app.db.session import SessionLocal
 from app.security.auth import decode_access_token, oauth2_scheme
 from app.security.authorization import AuthorizationService
+from app.security.permissions import DOCUMENT_READ
 
 security = HTTPBearer(auto_error=False)
 
@@ -86,6 +87,35 @@ def require_tenant_membership(
     # so outsiders cannot use this check to discover which tenants exist.
     if not AuthorizationService(db).is_tenant_member(current_user.id, tenant_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not a member of this tenant")
+    return current_user
+
+
+def require_tenant_permission(permission: str) -> Callable[..., User]:
+    def dependency(
+        tenant_id: int,
+        current_user: User = Depends(require_tenant_membership),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if not AuthorizationService(db).has_tenant_permission(current_user.id, tenant_id, permission):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing permission: {permission}")
+        return current_user
+
+    return dependency
+
+
+def require_document_read(
+    tenant_id: int,
+    team_id: int,
+    document_id: int,
+    current_user: User = Depends(require_tenant_membership),
+    db: Session = Depends(get_db),
+) -> User:
+    """Team permission, upload ownership or a grant. A refusal looks the same whether or not the document exists."""
+    team_in_tenant = db.scalar(select(Team.id).where(Team.id == team_id, Team.tenant_id == tenant_id))
+    if team_in_tenant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+    if not AuthorizationService(db).can_read_document(current_user.id, tenant_id, team_id, document_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing permission: {DOCUMENT_READ}")
     return current_user
 
 

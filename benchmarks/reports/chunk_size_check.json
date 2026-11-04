@@ -1,0 +1,366 @@
+{
+ "model_limit": 512,
+ "overlap": 64,
+ "sizes": {
+  "400": {
+   "real_text": {
+    "chunks": 15641,
+    "max": 626,
+    "p99": 523,
+    "mean": 424.2,
+    "over_limit": 309,
+    "percent_over_limit": 1.98
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 121,
+     "max": 157,
+     "p99": 157,
+     "mean": 156.0,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 169,
+     "max": 396,
+     "p99": 394,
+     "mean": 381.6,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 170,
+     "max": 546,
+     "p99": 545,
+     "mean": 487.0,
+     "over_limit": 65,
+     "percent_over_limit": 38.24
+    },
+    "urls": {
+     "chunks": 81,
+     "max": 635,
+     "p99": 631,
+     "mean": 601.0,
+     "over_limit": 80,
+     "percent_over_limit": 98.77
+    },
+    "base64_blob": {
+     "chunks": 179,
+     "max": 300,
+     "p99": 295,
+     "mean": 236.4,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 177,
+     "max": 502,
+     "p99": 502,
+     "mean": 500.3,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  },
+  "360": {
+   "real_text": {
+    "chunks": 17590,
+    "max": 593,
+    "p99": 473,
+    "mean": 383.0,
+    "over_limit": 12,
+    "percent_over_limit": 0.07
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 130,
+     "max": 157,
+     "p99": 157,
+     "mean": 145.1,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 191,
+     "max": 358,
+     "p99": 355,
+     "mean": 344.2,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 191,
+     "max": 497,
+     "p99": 496,
+     "mean": 441.1,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "urls": {
+     "chunks": 91,
+     "max": 579,
+     "p99": 572,
+     "mean": 544.5,
+     "over_limit": 90,
+     "percent_over_limit": 98.9
+    },
+    "base64_blob": {
+     "chunks": 203,
+     "max": 272,
+     "p99": 266,
+     "mean": 215.0,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 200,
+     "max": 452,
+     "p99": 452,
+     "mean": 451.6,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  },
+  "320": {
+   "real_text": {
+    "chunks": 20178,
+    "max": 499,
+    "p99": 422,
+    "mean": 340.9,
+    "over_limit": 0,
+    "percent_over_limit": 0.0
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 151,
+     "max": 126,
+     "p99": 126,
+     "mean": 125.4,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 219,
+     "max": 320,
+     "p99": 318,
+     "mean": 307.9,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 226,
+     "max": 437,
+     "p99": 435,
+     "mean": 386.8,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "urls": {
+     "chunks": 105,
+     "max": 524,
+     "p99": 512,
+     "mean": 483.2,
+     "over_limit": 2,
+     "percent_over_limit": 1.9
+    },
+    "base64_blob": {
+     "chunks": 235,
+     "max": 242,
+     "p99": 239,
+     "mean": 191.8,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 231,
+     "max": 402,
+     "p99": 402,
+     "mean": 401.4,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  },
+  "300": {
+   "real_text": {
+    "chunks": 21823,
+    "max": 498,
+    "p99": 398,
+    "mean": 319.6,
+    "over_limit": 0,
+    "percent_over_limit": 0.0
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 151,
+     "max": 126,
+     "p99": 126,
+     "mean": 125.4,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 240,
+     "max": 298,
+     "p99": 297,
+     "mean": 285.9,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 252,
+     "max": 409,
+     "p99": 408,
+     "mean": 355.5,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "urls": {
+     "chunks": 116,
+     "max": 494,
+     "p99": 481,
+     "mean": 445.7,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "base64_blob": {
+     "chunks": 254,
+     "max": 230,
+     "p99": 224,
+     "mean": 180.9,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 250,
+     "max": 377,
+     "p99": 377,
+     "mean": 376.7,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  },
+  "280": {
+   "real_text": {
+    "chunks": 23730,
+    "max": 446,
+    "p99": 372,
+    "mean": 298.1,
+    "over_limit": 0,
+    "percent_over_limit": 0.0
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 194,
+     "max": 126,
+     "p99": 126,
+     "mean": 98.2,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 260,
+     "max": 280,
+     "p99": 278,
+     "mean": 268.7,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 266,
+     "max": 375,
+     "p99": 374,
+     "mean": 338.6,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "urls": {
+     "chunks": 128,
+     "max": 458,
+     "p99": 436,
+     "mean": 411.6,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "base64_blob": {
+     "chunks": 278,
+     "max": 213,
+     "p99": 210,
+     "mean": 168.9,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 273,
+     "max": 352,
+     "p99": 352,
+     "mean": 351.5,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  },
+  "240": {
+   "real_text": {
+    "chunks": 28769,
+    "max": 396,
+    "p99": 320,
+    "mean": 255.2,
+    "over_limit": 0,
+    "percent_over_limit": 0.0
+   },
+   "stress": {
+    "chinese": {
+     "chunks": 202,
+     "max": 95,
+     "p99": 95,
+     "mean": 94.8,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "number_table": {
+     "chunks": 321,
+     "max": 241,
+     "p99": 239,
+     "mean": 228.9,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "source_code": {
+     "chunks": 325,
+     "max": 325,
+     "p99": 323,
+     "mean": 289,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "urls": {
+     "chunks": 156,
+     "max": 377,
+     "p99": 375,
+     "mean": 353.3,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "base64_blob": {
+     "chunks": 341,
+     "max": 185,
+     "p99": 180,
+     "mean": 146.1,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    },
+    "punctuation_heavy": {
+     "chunks": 334,
+     "max": 302,
+     "p99": 302,
+     "mean": 301.3,
+     "over_limit": 0,
+     "percent_over_limit": 0.0
+    }
+   }
+  }
+ }
+}

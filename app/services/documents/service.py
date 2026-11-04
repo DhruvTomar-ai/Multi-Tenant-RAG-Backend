@@ -10,20 +10,39 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.models.document import STATUS_FAILED, STATUS_PENDING, Document
+from app.db.models.document import (
+    ACCESS_LEVEL_TEAM,
+    EMBEDDING_FAILED,
+    EMBEDDING_NOT_STARTED,
+    EMBEDDING_PENDING,
+    STATUS_COMPLETED,
+    STATUS_FAILED,
+    STATUS_PENDING,
+    Document,
+)
 from app.db.models.document_chunk import DocumentChunk
 from app.db.models.document_job import DocumentJob
-from app.security.authorization import visible_team_ids
-from app.security.permissions import DOCUMENT_READ
+from app.db.models.embedding import Embedding
+from app.security.authorization import readable_document_condition
 from app.services.documents import task_queue
-from app.services.documents.errors import DuplicateDocumentError, IngestionQueueError
+from app.services.documents.errors import DuplicateDocumentError, EmbeddingRetryConflict, IngestionQueueError
+from app.services.documents.metadata import DocumentMetadataInput
 from app.services.documents.storage import LocalDocumentStorage, StagedFile
+from app.services.embeddings.search import SearchFilters, document_filter_conditions
 from app.services.documents.validation import (
     sanitize_filename,
     validate_declared_mime,
     validate_extension,
     validate_file_content,
 )
+
+
+_METADATA_FIELDS = ("document_type", "department", "category", "source", "access_level", "tags", "custom_metadata")
+
+
+def _not_hidden():
+    """Inactive and soft-deleted documents disappear from every read path."""
+    return (Document.is_active.is_(True), Document.deleted_at.is_(None))
 
 
 @dataclass(frozen=True)
@@ -37,8 +56,17 @@ class DocumentService:
         self.db = db
         self.storage = LocalDocumentStorage()
 
-    def upload_document(self, *, tenant_id: int, team_id: int, user_id: int, file: UploadFile) -> UploadResult:
+    def upload_document(
+        self,
+        *,
+        tenant_id: int,
+        team_id: int,
+        user_id: int,
+        file: UploadFile,
+        metadata: DocumentMetadataInput | None = None,
+    ) -> UploadResult:
         """Validate, store and queue an upload. The caller has already authorized the user."""
+        metadata = metadata or DocumentMetadataInput()
         filename = sanitize_filename(file.filename)
         extension = validate_extension(filename)
         validate_declared_mime(extension, file.content_type)
@@ -57,9 +85,10 @@ class DocumentService:
                     extension=extension,
                     content_type=content_type,
                     staged=staged,
+                    metadata=metadata,
                 )
             elif existing.status == STATUS_FAILED:
-                result = self._retry_failed_document(existing, user_id, staged)
+                result = self._retry_failed_document(existing, user_id, staged, metadata)
             else:
                 raise DuplicateDocumentError(existing.id, existing.status)
         finally:
@@ -77,15 +106,27 @@ class DocumentService:
             )
         )
 
-    def _next_version(self, tenant_id: int, team_id: int, filename: str) -> int:
-        latest = self.db.scalar(
-            select(func.max(Document.version)).where(
-                Document.tenant_id == tenant_id,
-                Document.team_id == team_id,
-                Document.original_filename == filename,
-            )
+    def _latest_version(self, tenant_id: int, team_id: int, filename: str) -> Document | None:
+        return self.db.scalar(
+            select(Document)
+            .where(Document.tenant_id == tenant_id, Document.team_id == team_id, Document.original_filename == filename)
+            .order_by(Document.version.desc())
+            .limit(1)
         )
-        return (latest or 0) + 1
+
+    @staticmethod
+    def _resolve_metadata(metadata: DocumentMetadataInput, previous: Document | None) -> dict:
+        """A new version keeps the previous version's metadata unless the upload replaces a field."""
+        values = {}
+        for name in _METADATA_FIELDS:
+            value = getattr(metadata, name)
+            if value is None and previous is not None:
+                value = getattr(previous, name)
+            values[name] = value
+        values["access_level"] = values["access_level"] or ACCESS_LEVEL_TEAM
+        values["tags"] = values["tags"] if values["tags"] is not None else []
+        values["custom_metadata"] = values["custom_metadata"] if values["custom_metadata"] is not None else {}
+        return values
 
     def _create_document(
         self,
@@ -97,10 +138,12 @@ class DocumentService:
         extension: str,
         content_type: str,
         staged: StagedFile,
+        metadata: DocumentMetadataInput,
     ) -> UploadResult:
         stored_filename = f"{uuid.uuid4().hex}{extension}"
         self.storage.promote(staged, tenant_id, team_id, stored_filename)
         try:
+            previous = self._latest_version(tenant_id, team_id, filename)
             document = Document(
                 tenant_id=tenant_id,
                 team_id=team_id,
@@ -112,8 +155,10 @@ class DocumentService:
                 file_hash=staged.sha256,
                 file_extension=extension,
                 status=STATUS_PENDING,
-                version=self._next_version(tenant_id, team_id, filename),
+                version=(previous.version if previous else 0) + 1,
                 metadata_json={},
+                embedding_status=EMBEDDING_NOT_STARTED,
+                **self._resolve_metadata(metadata, previous),
             )
             self.db.add(document)
             self.db.flush()
@@ -133,11 +178,14 @@ class DocumentService:
             raise
         return UploadResult(document=document, job=job)
 
-    def _retry_failed_document(self, document: Document, user_id: int, staged: StagedFile) -> UploadResult:
+    def _retry_failed_document(self, document: Document, user_id: int, staged: StagedFile, metadata: DocumentMetadataInput) -> UploadResult:
         """Uploading a previously failed file again starts a new job on the same document."""
         if not self.storage.exists(document.tenant_id, document.team_id, document.stored_filename):
             self.storage.promote(staged, document.tenant_id, document.team_id, document.stored_filename)
+        for name, value in self._resolve_metadata(metadata, document).items():
+            setattr(document, name, value)
         document.status = STATUS_PENDING
+        document.embedding_status = EMBEDDING_NOT_STARTED
         job = self._new_job(document, user_id)
         self.db.commit()
         return UploadResult(document=document, job=job)
@@ -175,17 +223,25 @@ class DocumentService:
         tenant_id: int,
         team_id: int | None = None,
         status: str | None = None,
+        embedding_status: str | None = None,
+        filters: SearchFilters | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Document]:
+        """Filters only narrow the authorized set, so a filter can never reveal another team's data."""
         stmt = select(Document).where(
             Document.tenant_id == tenant_id,
-            Document.team_id.in_(visible_team_ids(user_id, DOCUMENT_READ)),
+            readable_document_condition(user_id),
+            *_not_hidden(),
         )
         if team_id is not None:
             stmt = stmt.where(Document.team_id == team_id)
         if status is not None:
             stmt = stmt.where(Document.status == status)
+        if embedding_status is not None:
+            stmt = stmt.where(Document.embedding_status == embedding_status)
+        if filters is not None:
+            stmt = stmt.where(*document_filter_conditions(filters))
         return list(self.db.scalars(stmt.order_by(Document.id.desc()).limit(limit).offset(offset)).all())
 
     def get_document(self, *, user_id: int, tenant_id: int, team_id: int, document_id: int) -> Document | None:
@@ -195,9 +251,67 @@ class DocumentService:
                 Document.id == document_id,
                 Document.tenant_id == tenant_id,
                 Document.team_id == team_id,
-                Document.team_id.in_(visible_team_ids(user_id, DOCUMENT_READ)),
+                readable_document_condition(user_id),
+                *_not_hidden(),
             )
         )
+
+    def embedding_count(self, document: Document) -> int:
+        return self.db.scalar(
+            select(func.count()).select_from(Embedding).where(
+                Embedding.document_id == document.id,
+                Embedding.tenant_id == document.tenant_id,
+                Embedding.team_id == document.team_id,
+            )
+        )
+
+    def list_embedding_metadata(self, document: Document, *, limit: int = 100, offset: int = 0) -> list:
+        """Names its columns, so the vectors are never read from the database."""
+        stmt = (
+            select(
+                Embedding.id,
+                Embedding.chunk_id,
+                DocumentChunk.chunk_index,
+                Embedding.model_name,
+                Embedding.model_version,
+                Embedding.dimension,
+                Embedding.created_at,
+            )
+            .join(DocumentChunk, DocumentChunk.id == Embedding.chunk_id)
+            .where(
+                Embedding.document_id == document.id,
+                Embedding.tenant_id == document.tenant_id,
+                Embedding.team_id == document.team_id,
+            )
+            .order_by(DocumentChunk.chunk_index)
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(self.db.execute(stmt).all())
+
+    def latest_job(self, document: Document) -> DocumentJob | None:
+        return self.db.scalar(
+            select(DocumentJob)
+            .where(DocumentJob.document_id == document.id, DocumentJob.tenant_id == document.tenant_id, DocumentJob.team_id == document.team_id)
+            .order_by(DocumentJob.id.desc())
+            .limit(1)
+        )
+
+    def retry_embedding(self, document: Document) -> Document:
+        if document.status != STATUS_COMPLETED or document.embedding_status not in {EMBEDDING_FAILED, EMBEDDING_PENDING}:
+            raise EmbeddingRetryConflict(document.embedding_status)
+        document.embedding_status = EMBEDDING_PENDING
+        document.embedding_error = None
+        self.db.commit()
+        try:
+            task_queue.enqueue_embedding_job(document.id)
+        except Exception as exc:
+            message = "The processing queue is unavailable. Retry the embedding later."
+            document.embedding_status = EMBEDDING_FAILED
+            document.embedding_error = message
+            self.db.commit()
+            raise IngestionQueueError(message) from exc
+        return document
 
     def get_document_file_path(self, document: Document) -> Path | None:
         path = self.storage.path_for(document.tenant_id, document.team_id, document.stored_filename)
@@ -228,7 +342,11 @@ class DocumentService:
         limit: int = 50,
         offset: int = 0,
     ) -> list[DocumentJob]:
-        stmt = select(DocumentJob).where(DocumentJob.team_id.in_(visible_team_ids(user_id, DOCUMENT_READ)))
+        stmt = (
+            select(DocumentJob)
+            .join(Document, Document.id == DocumentJob.document_id)
+            .where(readable_document_condition(user_id), *_not_hidden())
+        )
         if tenant_id is not None:
             stmt = stmt.where(DocumentJob.tenant_id == tenant_id)
         if team_id is not None:
@@ -241,8 +359,11 @@ class DocumentService:
 
     def get_job(self, *, user_id: int, job_id: int) -> DocumentJob | None:
         return self.db.scalar(
-            select(DocumentJob).where(
+            select(DocumentJob)
+            .join(Document, Document.id == DocumentJob.document_id)
+            .where(
                 DocumentJob.id == job_id,
-                DocumentJob.team_id.in_(visible_team_ids(user_id, DOCUMENT_READ)),
+                readable_document_condition(user_id),
+                *_not_hidden(),
             )
         )

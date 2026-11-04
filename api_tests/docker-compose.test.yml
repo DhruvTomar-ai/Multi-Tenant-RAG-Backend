@@ -1,0 +1,28 @@
+# Throwaway services for api_tests. Separate project, separate ports, data kept in RAM.
+#   docker compose -p rag-api-test -f api_tests/docker-compose.test.yml up -d --wait
+#   docker compose -p rag-api-test -f api_tests/docker-compose.test.yml down -v
+services:
+  test-db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: rag_test
+      POSTGRES_PASSWORD: rag_test
+      POSTGRES_DB: rag_api_test
+    ports:
+      - "127.0.0.1:5434:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_test -d rag_api_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  test-redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

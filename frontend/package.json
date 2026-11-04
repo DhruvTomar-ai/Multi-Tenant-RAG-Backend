@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "pretest:e2e": "npm run build",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -6,6 +6,7 @@ import { AuthProvider, RequireAuth } from "./lib/auth";
 import { ApiError } from "./lib/errors";
 import { LoginPage, RegisterPage } from "./pages/AuthPages";
 import { DocumentDetailPage, DocumentsPage, UploadPage } from "./pages/DocumentPages";
+import { SearchPage } from "./pages/SearchPage";
 import { TeamDetailPage, TeamsPage } from "./pages/TeamPages";
 import { HomePage, MembersPage, OverviewPage } from "./pages/TenantPages";
 
@@ -39,6 +40,7 @@ export function App() {
                   <Route path="documents" element={<DocumentsPage />} />
                   <Route path="documents/upload" element={<UploadPage />} />
                   <Route path="teams/:teamId/documents/:documentId" element={<DocumentDetailPage />} />
+                  <Route path="search" element={<SearchPage />} />
                   <Route path="*" element={<NotFoundPanel backTo="/" backLabel="Go to your workspace" />} />
                 </Route>
                 <Route path="*" element={<NotFoundPanel backTo="/" backLabel="Go to your workspace" />} />

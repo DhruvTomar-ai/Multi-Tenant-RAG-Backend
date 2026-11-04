@@ -5,6 +5,7 @@ import { NotFoundPanel, ToastProvider } from "./components/ui";
 import { AuthProvider, RequireAuth } from "./lib/auth";
 import { ApiError } from "./lib/errors";
 import { LoginPage, RegisterPage } from "./pages/AuthPages";
+import { DocumentDetailPage, DocumentsPage, UploadPage } from "./pages/DocumentPages";
 import { TeamDetailPage, TeamsPage } from "./pages/TeamPages";
 import { HomePage, MembersPage, OverviewPage } from "./pages/TenantPages";
 
@@ -35,6 +36,9 @@ export function App() {
                   <Route path="members" element={<MembersPage />} />
                   <Route path="teams" element={<TeamsPage />} />
                   <Route path="teams/:teamId" element={<TeamDetailPage />} />
+                  <Route path="documents" element={<DocumentsPage />} />
+                  <Route path="documents/upload" element={<UploadPage />} />
+                  <Route path="teams/:teamId/documents/:documentId" element={<DocumentDetailPage />} />
                   <Route path="*" element={<NotFoundPanel backTo="/" backLabel="Go to your workspace" />} />
                 </Route>
                 <Route path="*" element={<NotFoundPanel backTo="/" backLabel="Go to your workspace" />} />

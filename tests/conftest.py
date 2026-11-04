@@ -7,6 +7,8 @@ TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["JWT_SECRET_KEY"] = "test-access-secret-key-that-is-long-enough-for-hs256"
 os.environ["JWT_REFRESH_SECRET_KEY"] = "test-refresh-secret-key-that-is-long-enough-for-hs256"
+# Tests never call the real Groq API, even if .env holds a key.
+os.environ["GROQ_API_KEY"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

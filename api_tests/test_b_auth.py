@@ -59,7 +59,7 @@ def test_every_route_rejects_a_bad_token(api, clean, method, template, kind):
     api.check(Actor(f"anonymous ({kind} token)"), method, template, path=_path(template), headers=bearer(tokens[kind]), expect=401, behavior=f"{kind} token rejected")
 
 
-def _valid_request(world, template, method):
+def _valid_request(api, world, template, method):
     """Real IDs and a valid body, so that only the ID under test can cause a rejection."""
     new_member = {"user_id": world.nora.id, "team_id": world.hr, "tenant_id": world.a, "role": "member"}
     bodies = {
@@ -71,8 +71,14 @@ def _valid_request(world, template, method):
         ("POST", support.UPLOAD): {"files": support.text_file()},
         ("POST", support.GRANTS): {"json": {"user_id": world.nora.id}},
         ("POST", support.SEARCH): {"json": {"query": "anything"}},
+        ("POST", support.CONVERSATIONS): {"json": {}},
+        ("PATCH", support.CONVERSATION): {"json": {"title": "x"}},
+        ("POST", support.MESSAGES): {"json": {"content": "anything"}},
     }
-    path = {"tenant_id": world.a, "team_id": world.hr, "document_id": world.doc_hr, "job_id": world.job_hr, "user_id": world.mona.id}
+    conversation_id = None
+    if "conversation_id" in template:
+        conversation_id = api.setup(world.alice, "POST", support.CONVERSATIONS, path={"tenant_id": world.a}, json={}).json()["id"]
+    path = {"tenant_id": world.a, "team_id": world.hr, "document_id": world.doc_hr, "job_id": world.job_hr, "user_id": world.mona.id, "conversation_id": conversation_id}
     names = re.findall(r"{(\w+)}", template)
     return {name: path[name] for name in names}, bodies.get((method, template), {})
 
@@ -93,13 +99,13 @@ ID_CASE_NAMES = [f"{m} {t} [{n}]" for m, t, n in ID_CASES]
 
 @pytest.mark.parametrize(("method", "template", "name"), ID_CASES, ids=ID_CASE_NAMES)
 def test_every_route_rejects_a_non_integer_id(api, fresh, method, template, name):
-    path, body = _valid_request(fresh, template, method)
+    path, body = _valid_request(api, fresh, template, method)
     api.check(fresh.alice, method, template, path={**path, name: "abc"}, expect=422, behavior=f"{name}='abc' fails validation", **body)
 
 
 @pytest.mark.parametrize(("method", "template", "name"), ID_CASES, ids=ID_CASE_NAMES)
 def test_every_route_handles_a_non_existent_id(api, fresh, method, template, name):
-    path, body = _valid_request(fresh, template, method)
+    path, body = _valid_request(api, fresh, template, method)
     expected = (403, 404) if name in ("tenant_id", "team_id") else 404
     if template == support.TEAM_MEMBERS and method == "POST":
         expected = (403, 404)

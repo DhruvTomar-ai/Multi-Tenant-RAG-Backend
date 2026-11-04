@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,6 +65,27 @@ class Settings(BaseSettings):
     search_default_top_k: int = Field(default=5, ge=1, alias="SEARCH_DEFAULT_TOP_K")
     search_max_top_k: int = Field(default=50, ge=1, le=200, alias="SEARCH_MAX_TOP_K")
     search_max_offset: int = Field(default=200, ge=0, le=1000, alias="SEARCH_MAX_OFFSET")
+
+    # Optional at startup: only answer generation needs it, and it fails safely without one.
+    groq_api_key: SecretStr | None = Field(default=None, alias="GROQ_API_KEY")
+    groq_model: str = Field(default="openai/gpt-oss-120b", alias="GROQ_MODEL")
+    groq_temperature: float = Field(default=0.1, ge=0, le=2, alias="GROQ_TEMPERATURE")
+    groq_max_tokens: int = Field(default=2048, gt=0, alias="GROQ_MAX_TOKENS")
+    groq_timeout_seconds: float = Field(default=30, gt=0, le=300, alias="GROQ_TIMEOUT_SECONDS")
+    # The SDK retries only timeouts, connection errors, 408, 409, 429 and 5xx, with backoff.
+    groq_max_retries: int = Field(default=2, ge=0, le=5, alias="GROQ_MAX_RETRIES")
+
+    rag_top_k: int = Field(default=5, ge=1, le=50, alias="RAG_TOP_K")
+    # A first filter on similarity_score (1 - cosine distance), so hopeless context never reaches the LLM.
+    # benchmarks/relevance_threshold.py measured answerable questions at 0.627 or above and unrelated ones
+    # at 0.542 or below on short passages. 0.50 leaves margin for longer chunks, and the LLM can still decline.
+    rag_min_similarity: float = Field(default=0.50, ge=-1, le=1, alias="RAG_MIN_SIMILARITY")
+    # Estimated tokens. See app/services/rag/context.py.
+    rag_max_context_tokens: int = Field(default=3000, gt=0, alias="RAG_MAX_CONTEXT_TOKENS")
+    rag_history_messages: int = Field(default=6, ge=0, le=50, alias="RAG_HISTORY_MESSAGES")
+    rag_max_history_tokens: int = Field(default=1000, ge=0, alias="RAG_MAX_HISTORY_TOKENS")
+    # Earlier questions added to the retrieval query, so a follow-up keeps its subject.
+    rag_retrieval_history_questions: int = Field(default=1, ge=0, le=5, alias="RAG_RETRIEVAL_HISTORY_QUESTIONS")
 
     @model_validator(mode="after")
     def _overlap_must_be_smaller_than_chunk(self) -> "Settings":

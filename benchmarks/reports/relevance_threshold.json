@@ -1,0 +1,100 @@
+{
+ "answerable": {
+  "min": 0.627,
+  "median": 0.747,
+  "max": 0.85
+ },
+ "unrelated": {
+  "min": 0.31,
+  "median": 0.435,
+  "max": 0.542
+ },
+ "thresholds": [
+  {
+   "threshold": 0.3,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "0/24"
+  },
+  {
+   "threshold": 0.35,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "2/24"
+  },
+  {
+   "threshold": 0.4,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "6/24"
+  },
+  {
+   "threshold": 0.45,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "15/24"
+  },
+  {
+   "threshold": 0.5,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "22/24"
+  },
+  {
+   "threshold": 0.55,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "24/24"
+  },
+  {
+   "threshold": 0.6,
+   "answerable_kept": "24/24",
+   "unrelated_blocked": "24/24"
+  },
+  {
+   "threshold": 0.65,
+   "answerable_kept": "21/24",
+   "unrelated_blocked": "24/24"
+  },
+  {
+   "threshold": 0.7,
+   "answerable_kept": "17/24",
+   "unrelated_blocked": "24/24"
+  },
+  {
+   "threshold": 0.75,
+   "answerable_kept": "11/24",
+   "unrelated_blocked": "24/24"
+  }
+ ],
+ "lowest_answerable": [
+  [
+   0.627,
+   "What class of flight can I book for work travel?"
+  ],
+  [
+   0.634,
+   "Is MFA required?"
+  ],
+  [
+   0.645,
+   "How do I undo a bad deployment?"
+  ],
+  [
+   0.678,
+   "What happens during the first two weeks at the company?"
+  ]
+ ],
+ "highest_unrelated": [
+  [
+   0.542,
+   "What are the symptoms of the common cold?"
+  ],
+  [
+   0.529,
+   "How much does a new car cost in Germany?"
+  ],
+  [
+   0.497,
+   "How long do you boil an egg?"
+  ],
+  [
+   0.482,
+   "What is the stock price of Apple today?"
+  ]
+ ]
+}

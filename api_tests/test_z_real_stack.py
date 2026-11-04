@@ -129,6 +129,21 @@ def test_real_server_search_returns_only_authorized_chunks(stack):
     api.check(w.bob, "POST", support.SEARCH, path={"tenant_id": w.a}, json={"query": "salary"}, expect=403, detail=NOT_MEMBER, absent=["CANARY"], behavior="Another tenant is refused")
 
 
+def test_real_server_chat_without_a_groq_key_fails_safely(stack):
+    """This server has no Groq key, so chat is real up to the point an LLM is needed."""
+    api, w = stack
+    conversation = api.check(w.mona, "POST", support.CONVERSATIONS, path={"tenant_id": w.a}, json={}, expect=201, behavior="Conversation created").json()
+    path = {"tenant_id": w.a, "conversation_id": conversation["id"]}
+    response = api.check(w.mona, "POST", support.MESSAGES, path=path, json={"content": "What is the confidential salary data?"}, expect=503, behavior="No key: a clear 503, not a fake answer")
+    api.verify(response.json()["code"] == "llm_not_configured" and "CANARY" not in response.text, response.text[:300])
+    # Asked after a relevant question on purpose: it must not borrow that question's relevance.
+    unrelated =api.check(w.mona, "POST", support.MESSAGES, path=path, json={"content": "What is the capital of Australia?"}, expect=200, behavior="Hopeless context never needs the LLM").json()
+    api.verify(unrelated["status"] == "insufficient_evidence" and unrelated["assistant_message"]["status_reason"] == "low_relevance", str(unrelated)[:300])
+    history = api.check(w.mona, "GET", support.MESSAGES, path=path, expect=200, behavior="Both questions and both outcomes saved").json()
+    api.verify([m["status"] for m in history if m["role"] == "assistant"] == ["failed", "insufficient_evidence"], str(history)[:300])
+    api.check(w.eli, "GET", support.MESSAGES, path=path, expect=404, detail="Conversation not found", behavior="Another user cannot read it")
+
+
 def test_real_server_upload_to_other_tenant_is_refused(stack):
     api, w = stack
     api.check(w.alice, "POST", UPLOAD, path={"tenant_id": w.b, "team_id": w.tb}, files=text_file(), expect=403, detail=NOT_MEMBER, behavior="Refused over real HTTP")

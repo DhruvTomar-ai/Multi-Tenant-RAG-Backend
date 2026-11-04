@@ -23,6 +23,8 @@ MODULE_CATEGORY = {
     "test_j_embeddings": "Embeddings and HNSW",
     "test_k_search": "Permission-aware search",
     "test_l_grants": "Ownership and document grants",
+    "test_m_chat": "RAG chat and conversations",
+    "test_n_groq_live": "Real Groq API",
     "test_z_real_stack": "Real server (uvicorn, Redis, Celery)",
 }
 

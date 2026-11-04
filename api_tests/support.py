@@ -49,6 +49,9 @@ DOC = "/tenants/{tenant_id}/teams/{team_id}/documents/{document_id}"
 GRANTS = "/tenants/{tenant_id}/teams/{team_id}/documents/{document_id}/grants"
 GRANT = "/tenants/{tenant_id}/teams/{team_id}/documents/{document_id}/grants/{user_id}"
 SEARCH = "/tenants/{tenant_id}/search"
+CONVERSATIONS = "/tenants/{tenant_id}/chat/conversations"
+CONVERSATION = "/tenants/{tenant_id}/chat/conversations/{conversation_id}"
+MESSAGES = "/tenants/{tenant_id}/chat/conversations/{conversation_id}/messages"
 JOBS = "/jobs"
 JOB = "/jobs/{job_id}"
 READ_SUFFIXES = ["", "/download", "/text", "/chunks", "/jobs", "/metadata", "/status", "/embeddings"]
@@ -117,7 +120,7 @@ class Recorder:
 
     def finish_phase(self, nodeid: str, report: Any) -> None:
         rows = self.rows_for(nodeid)
-        if report.passed or report.skipped and report.when != "call":
+        if report.passed:
             return
         message = str(report.longrepr).strip().splitlines()[-1][:300] if report.longrepr else ""
         if report.skipped:

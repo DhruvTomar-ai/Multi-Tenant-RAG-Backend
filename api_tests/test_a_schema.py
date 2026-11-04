@@ -43,7 +43,7 @@ def _document(tenant_id, team_id, **overrides):
 def test_migrations_reach_head_on_postgresql():
     with db_session.SessionLocal() as session:
         version = session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    support.fact(version == "d4b7f2a91c36", name="alembic upgrade head", expected="Head revision d4b7f2a91c36 applied", actual=f"Revision {version}")
+    support.fact(version == "e5c9a3d7b210", name="alembic upgrade head", expected="Head revision e5c9a3d7b210 applied", actual=f"Revision {version}")
 
 
 def test_pgvector_extension_is_available():

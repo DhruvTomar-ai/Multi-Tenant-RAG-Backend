@@ -38,6 +38,9 @@ os.environ.update(
     # Nothing listens here. The in-process tests capture tasks instead of sending them.
     CELERY_BROKER_URL="redis://127.0.0.1:1/15",
     DOCUMENT_STORAGE_ROOT=tempfile.mkdtemp(prefix="rag-api-tests-"),
+    # The suite never calls the real Groq API, even if .env holds a key.
+    # test_n_groq_live.py opts in only through GROQ_LIVE_TEST_API_KEY.
+    GROQ_API_KEY="",
 )
 
 from alembic import command  # noqa: E402

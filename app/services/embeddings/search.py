@@ -72,6 +72,7 @@ class SearchHit:
     tags: tuple[str, ...] = ()
     custom_metadata: dict[str, Any] | None = None
     uploaded_at: datetime | None = None
+    page_label: str | None = None
 
     @property
     def similarity_score(self) -> float:
@@ -149,6 +150,7 @@ def build_search_statement(*, user_id: int, tenant_id: int, query_vector: Sequen
             Embedding.team_id,
             DocumentChunk.chunk_index,
             DocumentChunk.chunk_text,
+            DocumentChunk.metadata_json.label("chunk_metadata"),
             distance,
             Document.original_filename,
             Document.version,
@@ -247,6 +249,7 @@ def search_embeddings(
             tags=tuple(row.tags or ()),
             custom_metadata=row.custom_metadata,
             uploaded_at=row.created_at,
+            page_label=(row.chunk_metadata or {}).get("page_label"),
         )
         for row in rows
     ]

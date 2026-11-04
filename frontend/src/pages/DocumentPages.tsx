@@ -49,7 +49,7 @@ export function DocumentsPage() {
 
   return (
     <div className="space-y-5">
-      <PageTitle description="Documents you can read in this tenant." actions={uploadableTeams.length > 0 ? uploadLink : <DisabledAction label="Upload document" reason="Viewers can read documents but can't upload them." />}>
+      <PageTitle description="Documents you can read in this tenant." actions={uploadableTeams.length > 0 ? uploadLink : <DisabledAction label="Upload document" reason={teams.length > 0 ? "Viewers can read documents but can't upload them." : "Join a team to upload documents."} />}>
         Documents
       </PageTitle>
       <form

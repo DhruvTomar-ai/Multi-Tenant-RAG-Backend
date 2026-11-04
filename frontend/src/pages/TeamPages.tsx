@@ -211,7 +211,12 @@ function MemberRow({ team, person, canManage, tenantAdminView }: { team: Team; p
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span>
           <span className="font-medium">{person.full_name || person.username}</span> <span className="text-slate-500">{person.email}</span>
-          {person.id === myId && <Badge tone="info">You</Badge>}
+          {person.id === myId && (
+            <>
+              {" "}
+              <Badge tone="info">You</Badge>
+            </>
+          )}
         </span>
         <span className="flex items-center gap-2">
           {editable ? (
